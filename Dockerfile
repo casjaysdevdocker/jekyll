@@ -27,12 +27,12 @@ ARG BUILD_DATE="$(date +'%Y-%m-%d %H:%M')"
 LABEL \
       org.label-schema.name="jekyll" \
       org.label-schema.description="jekyll container based on Alpine Linux" \
-      org.label-schema.url="https://github.com/casjaysdev/jekyll" \
-      org.label-schema.vcs-url="https://github.com/casjaysdev/jekyll" \
+      org.label-schema.url="https://hub.docker.com/r/casjaysdevdocker/jekyll" \
+      org.label-schema.vcs-url="https://github.com/casjaysdevdocker/jekyll" \
       org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.version=$ARIANG_VERSION \
       org.label-schema.vcs-ref=$VCS_REF \
-      org.label-schema.license="MIT" \
+      org.label-schema.license="WTFPL" \
       org.label-schema.vcs-type="Git" \
       org.label-schema.schema-version="latest" \
       org.label-schema.vendor="CasjaysDev" \
