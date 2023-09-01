@@ -48,8 +48,7 @@ ARG PHP_VERSION
 
 ARG PACK_LIST="rsync openssh-client lftp git zlib-dev libffi-dev build-base libxml2-dev imagemagick-dev readline-dev libxslt-dev \
   libffi-dev yaml-dev zlib-dev vips-dev vips-tools sqlite-dev cmake linux-headers openjdk8-jre less zlib libxml2 \
-  readline libxslt libffi git nodejs tzdata shadow bash npm libressl yarn ruby ruby-dev ruby-bundler \
-  "
+  readline libxslt libffi git nodejs tzdata shadow bash npm libressl yarn ruby ruby-dev ruby-bundler"
 
 ENV ENV=~/.bashrc
 ENV SHELL="/bin/sh"
