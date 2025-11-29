@@ -1,7 +1,8 @@
+# syntax=docker/dockerfile:1
 # Docker image for jekyll using the alpine template
 ARG IMAGE_NAME="jekyll"
 ARG PHP_SERVER="jekyll"
-ARG BUILD_DATE="202509161148"
+ARG BUILD_DATE="202408111050"
 ARG LANGUAGE="en_US.UTF-8"
 ARG TIMEZONE="America/New_York"
 ARG WWW_ROOT_DIR="/usr/local/share/httpd/default"
@@ -9,23 +10,23 @@ ARG DEFAULT_FILE_DIR="/usr/local/share/template-files"
 ARG DEFAULT_DATA_DIR="/usr/local/share/template-files/data"
 ARG DEFAULT_CONF_DIR="/usr/local/share/template-files/config"
 ARG DEFAULT_TEMPLATE_DIR="/usr/local/share/template-files/defaults"
-ARG PATH="/usr/local/etc/docker/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 ARG USER="root"
 ARG SHELL_OPTS="set -e -o pipefail"
 
-ARG SERVICE_PORT="80"
-ARG EXPOSE_PORTS="80"
+ARG SERVICE_PORT="4000"
+ARG EXPOSE_PORTS="4000"
+ARG LANG_VERSION="latest"
 ARG PHP_VERSION="system"
 ARG NODE_VERSION="system"
 ARG NODE_MANAGER="system"
 
-ARG IMAGE_REPO="casjaysdevdocker/jekyll"
+ARG IMAGE_REPO="casjaysdev/jekyll"
 ARG IMAGE_VERSION="latest"
-ARG CONTAINER_VERSION="2.7"
+ARG CONTAINER_VERSION="USE_DATE"
 
-ARG PULL_URL="casjaysdev/alpine"
-ARG DISTRO_VERSION="3.14"
+ARG PULL_URL="ruby"
+ARG DISTRO_VERSION="3.3-alpine"
 ARG BUILD_VERSION="${BUILD_DATE}"
 
 FROM tianon/gosu:latest AS gosu
@@ -52,18 +53,16 @@ ARG NODE_MANAGER
 ARG PHP_VERSION
 ARG PHP_SERVER
 ARG SHELL_OPTS
-ARG PATH
 
-ARG PACK_LIST=" "
+ARG PACK_LIST="bash-completion git curl wget sudo unzip iproute2 ssmtp openssl jq tzdata mailcap ncurses util-linux pciutils usbutils coreutils binutils findutils grep rsync zip tini py3-pip procps net-tools coreutils sed gawk grep attr findutils readline lsof less curl shadow certbot ca-certificates build-base ruby-dev "
 
 ENV ENV=~/.profile
 ENV SHELL="/bin/sh"
-ENV PATH="${PATH}"
 ENV TZ="${TIMEZONE}"
 ENV TIMEZONE="${TZ}"
 ENV LANG="${LANGUAGE}"
 ENV TERM="xterm-256color"
-ENV HOSTNAME="casjaysdevdocker-jekyll"
+ENV HOSTNAME="casjaysdev-jekyll"
 
 USER ${USER}
 WORKDIR /root
@@ -71,12 +70,14 @@ WORKDIR /root
 COPY ./rootfs/usr/local/bin/. /usr/local/bin/
 
 RUN set -e; \
-  echo "Updating the system and ensuring bash is installed"; \
-  pkmgr update;pkmgr install bash
-
-RUN set -e; \
   echo "Setting up prerequisites"; \
-  true
+  apk --no-cache add bash; \
+  SH_CMD="$(which sh 2>/dev/null||command -v sh 2>/dev/null)"; \
+  BASH_CMD="$(which bash 2>/dev/null||command -v bash 2>/dev/null)"; \
+  [ -x "$BASH_CMD" ] && /usr/local/bin/symlink "$BASH_CMD" "/bin/sh" || true; \
+  [ -x "$BASH_CMD" ] && /usr/local/bin/symlink "$BASH_CMD" "/usr/bin/sh" || true; \
+  [ -x "$BASH_CMD" ] && [ "$SH_CMD" != "/bin/sh" ] && /usr/local/bin/symlink "$BASH_CMD" "$SH_CMD" || true; \
+  [ -n "$BASH_CMD" ] && sed -i 's|root:x:.*|root:x:0:0:root:/root:'$BASH_CMD'|g' "/etc/passwd" || true
 
 ENV SHELL="/bin/bash"
 SHELL [ "/bin/bash", "-c" ]
@@ -91,7 +92,11 @@ RUN echo "Initializing the system"; \
 
 RUN echo "Creating and editing system files "; \
   $SHELL_OPTS; \
-  [ -f "/root/.profile" ] || touch "/root/.profile"; \
+  rm -Rf "/etc/apk/repositories"; \
+  [ "$DISTRO_VERSION" = "latest" ] && DISTRO_VERSION="edge";[ "$DISTRO_VERSION" = "edge" ] || DISTRO_VERSION="v${DISTRO_VERSION}"; \
+  echo "http://dl-cdn.alpinelinux.org/alpine/${DISTRO_VERSION}/main" >>"/etc/apk/repositories"; \
+  echo "http://dl-cdn.alpinelinux.org/alpine/${DISTRO_VERSION}/community" >>"/etc/apk/repositories"; \
+  if [ "${DISTRO_VERSION}" = "edge" ]; then echo "http://dl-cdn.alpinelinux.org/alpine/${DISTRO_VERSION}/testing" >>"/etc/apk/repositories";fi; \
   if [ -f "/root/docker/setup/01-system.sh" ];then echo "Running the system script";/root/docker/setup/01-system.sh||{ echo "Failed to execute /root/docker/setup/01-system.sh" >&2 && exit 10; };echo "Done running the system script";fi; \
   echo ""
 
@@ -128,7 +133,7 @@ RUN echo "Updating system files "; \
   [ -n "$PHP_FPM" ] && [ -z "$(command -v php-fpm 2>/dev/null)" ] && ln -sf "$PHP_FPM" "/usr/bin/php-fpm" 2>/dev/null || true; \
   if [ -f "/etc/profile.d/color_prompt.sh.disabled" ]; then mv -f "/etc/profile.d/color_prompt.sh.disabled" "/etc/profile.d/color_prompt.sh";fi ; \
   { [ -f "/etc/bash/bashrc" ] && cp -Rf "/etc/bash/bashrc" "/root/.bashrc"; } || { [ -f "/etc/bashrc" ] && cp -Rf "/etc/bashrc" "/root/.bashrc"; } || { [ -f "/etc/bash.bashrc" ] && cp -Rf "/etc/bash.bashrc" "/root/.bashrc"; } || true; \
-  if [ -z "$(command -v "apt-get" 2>/dev/null)" ];then grep -sh -q 'alias quit' "/root/.bashrc" || printf '# Profile\n\n%s\n%s\n%s\n' '. /etc/profile' '. /root/.profile' "alias quit='exit 0 2>/dev/null'" >>"/root/.bashrc"; fi; \
+  if [ -z "$(command -v "apt-get" 2>/dev/null)" ];then grep -s -q 'alias quit' "/root/.bashrc" || printf '# Profile\n\n%s\n%s\n%s\n' '. /etc/profile' '. /root/.profile' "alias quit='exit 0 2>/dev/null'" >>"/root/.bashrc"; fi; \
   if [ "$PHP_VERSION" != "system" ] && [ -e "/etc/php" ] && [ -d "/etc/${PHP_VERSION}" ];then rm -Rf "/etc/php";fi; \
   if [ "$PHP_VERSION" != "system" ] && [ -n "${PHP_VERSION}" ] && [ -d "/etc/${PHP_VERSION}" ];then ln -sf "/etc/${PHP_VERSION}" "/etc/php";fi; \
   if [ -f "/root/docker/setup/03-files.sh" ];then echo "Running the files script";/root/docker/setup/03-files.sh||{ echo "Failed to execute /root/docker/setup/03-files.sh" >&2 && exit 10; };echo "Done running the files script";fi; \
@@ -183,7 +188,6 @@ RUN echo "Deleting unneeded files"; \
 RUN echo "Init done"
 FROM scratch
 ARG TZ
-ARG PATH
 ARG USER
 ARG TIMEZONE
 ARG LANGUAGE
@@ -204,14 +208,14 @@ ARG NODE_MANAGER
 ARG PHP_VERSION
 ARG PHP_SERVER
 ARG LICENSE="WTFPL"
-ARG ENV_PORTS="${EXPOSE_PORTS}"
+ARG ENV_PORTS=""
 
 USER ${USER}
 WORKDIR /root
 
 LABEL maintainer="CasjaysDev <docker-admin@casjaysdev.pro>"
 LABEL org.opencontainers.image.vendor="CasjaysDev"
-LABEL org.opencontainers.image.authors="CasjaysDev"
+LABEL org.opencontainers.image.authors="CasjaysDev <docker-admin@casjaysdev.pro"
 LABEL org.opencontainers.image.description="Containerized version of ${IMAGE_NAME}"
 LABEL org.opencontainers.image.title="${IMAGE_NAME}"
 LABEL org.opencontainers.image.base.name="${IMAGE_NAME}"
@@ -219,19 +223,18 @@ LABEL org.opencontainers.image.authors="${LICENSE}"
 LABEL org.opencontainers.image.created="${BUILD_DATE}"
 LABEL org.opencontainers.image.version="${BUILD_VERSION}"
 LABEL org.opencontainers.image.schema-version="${BUILD_VERSION}"
-LABEL org.opencontainers.image.url="docker.io"
-LABEL org.opencontainers.image.source="docker.io"
+LABEL org.opencontainers.image.url="https://hub.docker.com/r/casjaysdev/jekyll"
+LABEL org.opencontainers.image.source="https://hub.docker.com/r/casjaysdev/jekyll"
 LABEL org.opencontainers.image.vcs-type="Git"
 LABEL org.opencontainers.image.revision="${BUILD_VERSION}"
-LABEL org.opencontainers.image.source="https://github.com/casjaysdevdocker/jekyll"
-LABEL org.opencontainers.image.documentation="https://github.com/casjaysdevdocker/jekyll"
+LABEL org.opencontainers.image.source="https://github.com/casjaysdev/jekyll"
+LABEL org.opencontainers.image.documentation="https://github.com/casjaysdev/jekyll"
 LABEL com.github.containers.toolbox="false"
 
 ENV ENV=~/.bashrc
 ENV USER="${USER}"
-ENV PATH="${PATH}"
-ENV TZ="${TIMEZONE}"
 ENV SHELL="/bin/bash"
+ENV TZ="${TIMEZONE}"
 ENV TIMEZONE="${TZ}"
 ENV LANG="${LANGUAGE}"
 ENV TERM="xterm-256color"
@@ -252,5 +255,6 @@ VOLUME [ "/config","/data" ]
 
 EXPOSE ${SERVICE_PORT} ${ENV_PORTS}
 
-ENTRYPOINT [ "tini","--","/usr/local/bin/entrypoint.sh", "start" ]
+CMD [ "tail", "-f", "/dev/null" ]
+ENTRYPOINT [ "tini","--","/usr/local/bin/entrypoint.sh" ]
 HEALTHCHECK --start-period=10m --interval=5m --timeout=15s CMD [ "/usr/local/bin/entrypoint.sh", "healthcheck" ]
