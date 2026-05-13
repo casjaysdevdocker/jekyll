@@ -1,73 +1,79 @@
-# Jekyll Docker Container with GitHub Pages Support
+## 👋 Welcome to jekyll 🚀  
 
-Docker container for Jekyll static site generator with full GitHub Pages support.
+jekyll README  
+  
+  
+## Install my system scripts  
 
-## Features
-
-- Based on Ruby 3.3 Alpine
-- Jekyll with latest stable version
-- Full GitHub Pages gem support
-- Bundler for dependency management
-- WEBrick for local serving
-- Multi-architecture support (amd64, arm64)
-
-## Usage
-
-### Run Jekyll Server
-
-```bash
+```shell
+ sudo bash -c "$(curl -q -LSsf "https://github.com/systemmgr/installer/raw/main/install.sh")"
+ sudo systemmgr --config && sudo systemmgr install scripts  
+```
+  
+## Automatic install/update  
+  
+```shell
+dockermgr update jekyll
+```
+  
+## Install and run container
+  
+```shell
+dockerHome="/var/lib/srv/$USER/docker/casjaysdevdocker/jekyll/jekyll/latest/rootfs"
+mkdir -p "/var/lib/srv/$USER/docker/jekyll/rootfs"
+git clone "https://github.com/dockermgr/jekyll" "$HOME/.local/share/CasjaysDev/dockermgr/jekyll"
+cp -Rfva "$HOME/.local/share/CasjaysDev/dockermgr/jekyll/rootfs/." "$dockerHome/"
 docker run -d \
-  -p 4000:4000 \
-  -v $(pwd):/srv/jekyll \
-  casjaysdevdocker/jekyll
+--restart always \
+--privileged \
+--name casjaysdevdocker-jekyll-latest \
+--hostname jekyll \
+-e TZ=${TIMEZONE:-America/New_York} \
+-v "$dockerHome/data:/data:z" \
+-v "$dockerHome/config:/config:z" \
+-p 80:80 \
+casjaysdevdocker/jekyll:latest
 ```
-
-### Create New Site
-
-```bash
-docker run --rm \
-  -v $(pwd):/srv/jekyll \
-  casjaysdevdocker/jekyll \
-  jekyll new my-site
+  
+## via docker-compose  
+  
+```yaml
+version: "2"
+services:
+  ProjectName:
+    image: casjaysdevdocker/jekyll
+    container_name: casjaysdevdocker-jekyll
+    environment:
+      - TZ=America/New_York
+      - HOSTNAME=jekyll
+    volumes:
+      - "/var/lib/srv/$USER/docker/casjaysdevdocker/jekyll/jekyll/latest/rootfs/data:/data:z"
+      - "/var/lib/srv/$USER/docker/casjaysdevdocker/jekyll/jekyll/latest/rootfs/config:/config:z"
+    ports:
+      - 80:80
+    restart: always
 ```
-
-### Build Site
-
-```bash
-docker run --rm \
-  -v $(pwd):/srv/jekyll \
-  casjaysdevdocker/jekyll \
-  jekyll build
+  
+## Get source files  
+  
+```shell
+dockermgr download src casjaysdevdocker/jekyll
 ```
-
-### Serve with Live Reload
-
-```bash
-docker run -d \
-  -p 4000:4000 \
-  -v $(pwd):/srv/jekyll \
-  casjaysdevdocker/jekyll \
-  jekyll serve --host 0.0.0.0 --livereload
+  
+OR
+  
+```shell
+git clone "https://github.com/casjaysdevdocker/jekyll" "$HOME/Projects/github/casjaysdevdocker/jekyll"
 ```
-
-## Environment Variables
-
-- `LANG_VERSION` - Jekyll version (default: latest)
-- `SERVICE_PORT` - Port to expose (default: 4000)
-
-## Volumes
-
-- `/srv/jekyll` - Jekyll site directory
-- `/usr/local/share/template-files` - Template files
-
-## Ports
-
-- `4000` - Jekyll development server
-
-## GitHub Pages
-
-This container includes the `github-pages` gem which ensures compatibility with GitHub Pages deployment.
-
-## License
-
-MIT - CasjaysDev
+  
+## Build container  
+  
+```shell
+cd "$HOME/Projects/github/casjaysdevdocker/jekyll"
+buildx 
+```
+  
+## Authors  
+  
+🤖 casjay: [Github](https://github.com/casjay) 🤖  
+⛵ casjaysdevdocker: [Github](https://github.com/casjaysdevdocker) [Docker](https://hub.docker.com/u/casjaysdevdocker) ⛵  
